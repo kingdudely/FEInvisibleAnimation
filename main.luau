@@ -14,6 +14,10 @@ local Animations = {
 		TimePosition = 6.7,
 		AnimationId = "rbxassetid://108081843941348",
 	},
+	[10449761463] = {
+		TimePosition = 6.7,
+		AnimationId = "rbxassetid://18462892217"
+	}
 }
 
 local AnimationConfiguration = Animations[game.PlaceId]
@@ -34,7 +38,16 @@ end
 HumanoidRootPart.Transparency = 0
 HumanoidRootPart.LocalTransparencyModifier = 0
 
+HumanoidRootPart:GetPropertyChangedSignal("Transparency", function()
+	HumanoidRootPart.Transparency = 0
+end)
+
+HumanoidRootPart:GetPropertyChangedSignal("LocalTransparencyModifier", function()
+	HumanoidRootPart.LocalTransparencyModifier = 0
+end)
+
 -- Camera follows HRP
+CurrentCamera.CameraType = Enum.CameraType.Custom
 CurrentCamera.CameraSubject = HumanoidRootPart
 
 -- Make every other BasePart non-collidable and massless
@@ -52,21 +65,28 @@ Animation.AnimationId = AnimationConfiguration.AnimationId
 local AnimationTrack = Animator:LoadAnimation(Animation)
 AnimationTrack.Priority = Enum.AnimationPriority.Action4
 
--- Stop existing animations
-for _, PlayingAnimationTrack in Animator:GetPlayingAnimationTracks() do
+local function PlayAnimationTrack()
+    if not AnimationTrack.IsPlaying then
+        AnimationTrack:Play(0)
+		AnimationTrack.TimePosition = AnimationConfiguration.TimePosition
+        AnimationTrack:AdjustSpeed(0)
+    end
+end
+
+local function StopOtherAnimationTrack(PlayingAnimationTrack)
 	if PlayingAnimationTrack ~= AnimationTrack then
 		PlayingAnimationTrack:Stop(0)
+		PlayAnimationTrack()
 	end
 end
 
+-- Stop existing animations
+for _, PlayingAnimationTrack in Animator:GetPlayingAnimationTracks() do
+	StopOtherAnimationTrack(PlayingAnimationTrack)
+end
+
 -- Stop animations that try to start afterward
-Animator.AnimationPlayed:Connect(function(PlayingAnimationTrack)
-	if PlayingAnimationTrack ~= AnimationTrack then
-		PlayingAnimationTrack:Stop(0)
-	end
-end)
+Animator.AnimationPlayed:Connect(StopOtherAnimationTrack)
 
 -- Play at the configured point and freeze
-AnimationTrack:Play(0)
-AnimationTrack.TimePosition = AnimationConfiguration.TimePosition
-AnimationTrack:AdjustSpeed(0)
+PlayAnimationTrack()
